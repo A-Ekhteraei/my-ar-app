@@ -3,48 +3,28 @@
 <head>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>body { margin: 0; }</style>
 </head>
 <body>
-    <a-scene 
-        embedded 
-        arjs="sourceType: webcam; detectionMode: mono;"
-        renderer="logarithmicDepthBuffer: true; alpha: false;">
+    <!-- ONLY your custom marker with red cube -->
+    <a-scene embedded arjs="sourceType: webcam; detectionMode: mono;">
         
-        <!-- Force camera settings -->
-        <a-entity camera="near: 0.01; far: 10000;"></a-entity>
-        
-        <!-- Add light -->
-        <a-entity light="type: ambient; color: #FFF; intensity: 1"></a-entity>
-        
+        <!-- Your marker with red cube -->
         <a-marker type="pattern" url="markers/my-marker.patt">
-            <!-- TEST: Small scale, close position -->
-            <a-entity 
-                gltf-model="models/my-model.glb"
-                scale="0.05 0.05 0.05"
-                position="0 0.05 0">
-            </a-entity>
+            <a-box 
+                position="0 0.5 0" 
+                color="red" 
+                width="1" height="1" depth="1">
+            </a-box>
         </a-marker>
         
+        <a-entity camera></a-entity>
     </a-scene>
     
     <script>
-        // Monitor model loading
-        const model = document.querySelector('[gltf-model]');
-        model.addEventListener('model-loaded', () => {
-            console.log('Model loaded at:', new Date().toISOString());
-            
-            // Force traverse and fix materials
-            const obj = model.object3D;
-            if (obj) {
-                obj.traverse((node) => {
-                    if (node.isMesh) {
-                        console.log('Found mesh:', node.name || 'unnamed');
-                        node.material.transparent = false;
-                        node.material.opacity = 1.0;
-                    }
-                });
-            }
-        });
+        const marker = document.querySelector('a-marker');
+        marker.addEventListener('markerFound', () => console.log("Marker found"));
+        marker.addEventListener('markerLost', () => console.log("Marker lost"));
     </script>
 </body>
 </html>
