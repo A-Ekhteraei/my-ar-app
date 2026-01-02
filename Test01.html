@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+</head>
+<body>
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; detectionMode: mono;"
+        renderer="logarithmicDepthBuffer: true; alpha: false;">
+        
+        <!-- Force camera settings -->
+        <a-entity camera="near: 0.01; far: 10000;"></a-entity>
+        
+        <!-- Add light -->
+        <a-entity light="type: ambient; color: #FFF; intensity: 1"></a-entity>
+        
+        <a-marker type="pattern" url="markers/my-marker.patt">
+            <!-- TEST: Small scale, close position -->
+            <a-entity 
+                gltf-model="models/my-model.glb"
+                scale="0.05 0.05 0.05"
+                position="0 0.05 0">
+            </a-entity>
+        </a-marker>
+        
+    </a-scene>
+    
+    <script>
+        // Monitor model loading
+        const model = document.querySelector('[gltf-model]');
+        model.addEventListener('model-loaded', () => {
+            console.log('Model loaded at:', new Date().toISOString());
+            
+            // Force traverse and fix materials
+            const obj = model.object3D;
+            if (obj) {
+                obj.traverse((node) => {
+                    if (node.isMesh) {
+                        console.log('Found mesh:', node.name || 'unnamed');
+                        node.material.transparent = false;
+                        node.material.opacity = 1.0;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
