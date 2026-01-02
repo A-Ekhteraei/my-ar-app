@@ -18,10 +18,18 @@
         }
         
         body {
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            background: black;
-        }
+    font-family: Arial, sans-serif;
+    overflow-x: hidden;  /* Changed from "hidden" to "hidden-x" */
+    overflow-y: auto;    /* Allow vertical scrolling */
+    background: black;
+    min-height: 100vh;   /* Add this */
+}
+
+#startScreen {
+    min-height: 100vh;   /* Add this */
+    height: auto;        /* Add this */
+    overflow-y: auto;    /* Add this */
+}
         
         /* Start screen - shown first */
         #startScreen {
@@ -207,107 +215,282 @@
     </a-scene>
 
     <!-- JAVASCRIPT CODE -->
-    <script>
-        // Wait for page to load
-        document.addEventListener('DOMContentLoaded', function() {
+<script>
+    // Wait for page to load
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // Get elements
+        const startScreen = document.getElementById('startScreen');
+        const startButton = document.getElementById('startButton');
+        const arScene = document.getElementById('arScene');
+        const instructions = document.getElementById('instructions');
+        const loading = document.getElementById('loading');
+        
+        // Check browser support FIRST
+        function checkBrowserSupport() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
             
-            // Get elements
-            const startScreen = document.getElementById('startScreen');
-            const startButton = document.getElementById('startButton');
-            const arScene = document.getElementById('arScene');
-            const instructions = document.getElementById('instructions');
-            const loading = document.getElementById('loading');
+            // Check if it's Android Chrome
+            const isAndroid = /android/i.test(userAgent);
+            const isChrome = /chrome/i.test(userAgent) && !/edge/i.test(userAgent);
             
-            // Start button click handler
-            startButton.addEventListener('click', function() {
-                
-                // Hide start screen
-                startScreen.style.display = 'none';
-                
-                // Show loading
-                loading.style.display = 'block';
-                
-                // Check if browser supports AR
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    alert('Sorry, your device/browser does not support camera access. Try Chrome or Safari on a smartphone.');
-                    startScreen.style.display = 'flex';
-                    loading.style.display = 'none';
-                    return;
-                }
-                
-                // Ask for camera permission first
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(function(stream) {
-                        // Permission granted
-                        
-                        // Stop the stream (we'll let AR.js handle it)
-                        stream.getTracks().forEach(track => track.stop());
-                        
-                        // Show AR scene
-                        setTimeout(function() {
-                            loading.style.display = 'none';
-                            arScene.style.display = 'block';
-                            instructions.style.display = 'block';
-                            
-                            // Force AR.js to start (important for iOS)
-                            if (arScene.hasLoaded) {
-                                arScene.enterVR();
-                            }
-                            
-                        }, 1000);
-                        
-                    })
-                    .catch(function(error) {
-                        // Permission denied or error
-                        console.error('Camera error:', error);
-                        alert('Camera access is required. Please allow camera access and try again.');
-                        startScreen.style.display = 'flex';
-                        loading.style.display = 'none';
-                    });
+            // Check if it's iOS Safari
+            const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+            const isSafari = /safari/i.test(userAgent) && !/chrome/i.test(userAgent);
+            
+            // Check for basic WebGL support (needed for AR)
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            const hasWebGL = !!gl;
+            
+            // Check for getUserMedia support
+            const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            
+            console.log('Browser Check:', {
+                userAgent: userAgent,
+                isAndroid: isAndroid,
+                isChrome: isChrome,
+                isIOS: isIOS,
+                isSafari: isSafari,
+                hasWebGL: hasWebGL,
+                hasGetUserMedia: hasGetUserMedia
             });
             
-            // Handle marker found/lost events
-            const marker = document.getElementById('myMarker');
-            const model = document.getElementById('my3DModel');
-            
-            if (marker) {
-                marker.addEventListener('markerFound', function() {
-                    console.log('Marker found!');
-                    document.getElementById('instructions').innerHTML = 
-                        'Marker detected! Move around your model.';
-                    
-                    // Optional: Add a pulse animation when marker found
-                    if (model) {
-                        model.setAttribute('animation__pulse', 
-                            'property: scale; from: 0.5 0.5 0.5; to: 0.55 0.55 0.55; dir: alternate; dur: 500; loop: 2');
-                    }
-                });
+            return {
+                isAndroid,
+                isChrome,
+                isIOS,
+                isSafari,
+                hasWebGL,
+                hasGetUserMedia
+            };
+        }
+        
+        // Run browser check
+        const browserInfo = checkBrowserSupport();
+        
+        // Show appropriate instructions based on browser
+        if (browserInfo.isAndroid) {
+            if (!browserInfo.isChrome) {
+                document.getElementById('startButton').innerHTML = '⚠️ Use Chrome Browser';
+                document.getElementById('startButton').style.background = '#ff9800';
                 
-                marker.addEventListener('markerLost', function() {
-                    console.log('Marker lost');
-                    document.getElementById('instructions').innerHTML = 
-                        'Point camera at the QR code marker';
-                });
+                const extraInfo = document.createElement('p');
+                extraInfo.innerHTML = 'For best results on Android, please use <strong>Google Chrome</strong> browser.';
+                extraInfo.style.color = 'white';
+                extraInfo.style.marginTop = '10px';
+                extraInfo.style.fontSize = '0.9em';
+                startScreen.appendChild(extraInfo);
+            }
+        }
+        
+        // Start button click handler
+        startButton.addEventListener('click', function() {
+            
+            // Hide start screen
+            startScreen.style.display = 'none';
+            
+            // Show loading
+            loading.style.display = 'block';
+            
+            // Better browser support check
+            if (!navigator.mediaDevices) {
+                // Fallback for older browsers
+                navigator.mediaDevices = {};
             }
             
-            // Handle clicks on the 3D model
-            if (model) {
-                model.addEventListener('click', function() {
-                    // Change scale briefly when tapped
-                    this.setAttribute('scale', '0.6 0.6 0.6');
+            if (!navigator.mediaDevices.getUserMedia) {
+                // Older Android Chrome might need this
+                navigator.mediaDevices.getUserMedia = function(constraints) {
+                    var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
                     
-                    // Reset after 0.3 seconds
-                    setTimeout(() => {
-                        this.setAttribute('scale', '0.5 0.5 0.5');
-                    }, 300);
-                });
+                    if (!getUserMedia) {
+                        return Promise.reject(new Error('getUserMedia is not implemented'));
+                    }
+                    
+                    return new Promise(function(resolve, reject) {
+                        getUserMedia.call(navigator, constraints, resolve, reject);
+                    });
+                };
             }
             
-            // Handle touch events for mobile
-            document.addEventListener('touchstart', function() {
-                // This helps with iOS audio/video autoplay
-            }, { once: true });
+            // Android-specific: Check if we're on HTTPS or localhost
+            const isSecure = window.location.protocol === 'https:' || 
+                            window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1';
+            
+            if (!isSecure && browserInfo.isAndroid) {
+                loading.style.display = 'none';
+                alert('⚠️ Android Chrome requires HTTPS for camera access.\n\n' +
+                      'Solution: Use the localhost method:\n' +
+                      '1. On phone, use this exact URL: \n' +
+                      '   http://[YOUR-COMPUTER-IP]:8000\n' +
+                      '2. Or use Chrome on your computer\n\n' +
+                      'For online deployment, your site must use HTTPS.');
+                startScreen.style.display = 'flex';
+                return;
+            }
+            
+            // iOS-specific: Play silent audio to unlock autoplay
+            if (browserInfo.isIOS) {
+                const audio = document.createElement('audio');
+                audio.autoplay = true;
+                audio.muted = true;
+                audio.innerHTML = '<source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ" type="audio/wav">';
+                document.body.appendChild(audio);
+            }
+            
+            // Request camera with specific constraints for Android
+            const constraints = {
+                video: {
+                    facingMode: { ideal: 'environment' }, // Prefer rear camera
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30 }
+                },
+                audio: false
+            };
+            
+            console.log('Requesting camera with constraints:', constraints);
+            
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(stream) {
+                    console.log('Camera access granted');
+                    
+                    // Stop the stream (AR.js will start its own)
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // Show AR scene
+                    setTimeout(function() {
+                        loading.style.display = 'none';
+                        arScene.style.display = 'block';
+                        instructions.style.display = 'block';
+                        
+                        // Initialize AR.js
+                        if (arScene.components && arScene.components.arjs) {
+                            arScene.components.arjs.start();
+                        }
+                        
+                        // Force scene to render
+                        arScene.emit('renderstart');
+                        
+                    }, 500);
+                    
+                })
+                .catch(function(error) {
+                    console.error('Camera error:', error);
+                    loading.style.display = 'none';
+                    
+                    // User-friendly error messages
+                    let errorMessage = 'Camera access failed. ';
+                    
+                    if (error.name === 'NotAllowedError') {
+                        errorMessage += 'You denied camera permission. ';
+                        errorMessage += 'Please allow camera access in your browser settings.';
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage += 'No camera found on your device.';
+                    } else if (error.name === 'NotSupportedError') {
+                        errorMessage += 'Your browser does not support camera access.';
+                        errorMessage += ' Try Chrome or Firefox on Android.';
+                    } else if (error.name === 'SecurityError') {
+                        errorMessage += 'Camera access is blocked. ';
+                        errorMessage += 'Make sure you are using HTTPS or localhost.';
+                    } else {
+                        errorMessage += 'Error: ' + error.message;
+                    }
+                    
+                    // Create better error display
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'scanning-overlay';
+                    errorDiv.innerHTML = `
+                        <div style="background: rgba(0,0,0,0.9); padding: 30px; border-radius: 10px; text-align: center; max-width: 90%;">
+                            <h2 style="color: #ff6b6b;">Camera Error</h2>
+                            <p style="margin: 20px 0; color: white;">${errorMessage}</p>
+                            <p style="color: #aaa; font-size: 0.9em;">
+                                <strong>Try these solutions:</strong><br>
+                                1. Make sure you're using Chrome browser<br>
+                                2. Allow camera permissions when prompted<br>
+                                3. Use HTTPS (for online deployment)<br>
+                                4. Restart the browser
+                            </p>
+                            <button id="retryButton" style="padding: 12px 24px; margin-top: 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px;">
+                                Try Again
+                            </button>
+                            <button id="backButton" style="padding: 12px 24px; margin-top: 10px; background: #555; color: white; border: none; border-radius: 5px; font-size: 16px;">
+                                Back
+                            </button>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(errorDiv);
+                    
+                    // Add retry functionality
+                    document.getElementById('retryButton').addEventListener('click', function() {
+                        document.body.removeChild(errorDiv);
+                        startButton.click(); // Simulate click on original button
+                    });
+                    
+                    document.getElementById('backButton').addEventListener('click', function() {
+                        document.body.removeChild(errorDiv);
+                        startScreen.style.display = 'flex';
+                    });
+                });
         });
-    </script>
+        
+        // Handle marker found/lost events
+        const marker = document.getElementById('myMarker');
+        const model = document.getElementById('my3DModel');
+        
+        if (marker) {
+            marker.addEventListener('markerFound', function() {
+                console.log('Marker found!');
+                if (instructions) {
+                    instructions.innerHTML = 'Marker detected! Move around your model.';
+                }
+            });
+            
+            marker.addEventListener('markerLost', function() {
+                console.log('Marker lost');
+                if (instructions) {
+                    instructions.innerHTML = 'Point camera at the QR code marker';
+                }
+            });
+        }
+        
+        // Handle clicks on the 3D model
+        if (model) {
+            model.addEventListener('click', function() {
+                // Change scale briefly when tapped
+                this.setAttribute('scale', '0.6 0.6 0.6');
+                
+                // Reset after 0.3 seconds
+                setTimeout(() => {
+                    this.setAttribute('scale', '0.5 0.5 0.5');
+                }, 300);
+            });
+        }
+        
+        // Help with touch events on Android
+        document.addEventListener('touchstart', function(e) {
+            // Prevent double-tap zoom
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Prevent pull-to-refresh on Android
+        let startY = 0;
+        document.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', function(e) {
+            // If user is at top of page and pulling down, prevent default
+            if (window.scrollY === 0 && e.touches[0].clientY > startY) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    });
+</script>
 </body>
 </html>
