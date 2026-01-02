@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug AR App</title>
+</head>
+<body>
+    <h1>Debug Your AR App</h1>
+    
+    <h2>1. Test File URLs:</h2>
+    <div id="urlTests"></div>
+    
+    <h2>2. Test Console:</h2>
+    <p>Open Dev Tools (F12) → Console tab</p>
+    
+    <h2>3. Test 3D Model:</h2>
+    <div id="modelTest"></div>
+    
+    <h2>4. Test Camera:</h2>
+    <button onclick="testCamera()">Test Camera Access</button>
+    <video id="testVideo" width="300" style="display:none;"></video>
+
+    <script>
+        // Test 1: Check if files exist
+        const filesToTest = [
+            'models/my-model.glb',
+            'markers/my-marker.patt',
+            'markers/my-qr-code.png',
+            'https://aframe.io/releases/1.4.0/aframe.min.js',
+            'https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js'
+        ];
+        
+        filesToTest.forEach(url => {
+            const testDiv = document.getElementById('urlTests');
+            const testLink = document.createElement('a');
+            testLink.href = url;
+            testLink.textContent = url;
+            testLink.target = '_blank';
+            testLink.style.display = 'block';
+            testLink.style.margin = '5px';
+            
+            // Create an image test for .png
+            if (url.endsWith('.png')) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.width = 100;
+                img.onerror = () => {
+                    testLink.style.color = 'red';
+                    testLink.textContent += ' ❌ 404 ERROR';
+                };
+                img.onload = () => {
+                    testLink.style.color = 'green';
+                    testLink.textContent += ' ✅ Loads';
+                };
+                testDiv.appendChild(img);
+            }
+            
+            testDiv.appendChild(testLink);
+            
+            // Test with fetch for other files
+            if (!url.endsWith('.png')) {
+                fetch(url)
+                    .then(response => {
+                        if (response.ok) {
+                            testLink.style.color = 'green';
+                            testLink.textContent += ' ✅ Found';
+                        } else {
+                            testLink.style.color = 'red';
+                            testLink.textContent += ' ❌ Error ' + response.status;
+                        }
+                    })
+                    .catch(error => {
+                        testLink.style.color = 'red';
+                        testLink.textContent += ' ❌ Network Error';
+                    });
+            }
+        });
+        
+        // Test 2: Check WebGL support
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        console.log('WebGL Support:', !!gl ? '✅ Yes' : '❌ No');
+        
+        // Test 3: Try loading the GLB model with Three.js
+        const modelTest = document.getElementById('modelTest');
+        const modelUrl = 'models/my-model.glb';
+        
+        // Simple model viewer
+        const viewerBtn = document.createElement('button');
+        viewerBtn.textContent = 'Test 3D Model Viewer';
+        viewerBtn.onclick = function() {
+            window.open('https://gltf-viewer.donmccurdy.com/?url=' + 
+                       encodeURIComponent(window.location.origin + '/' + modelUrl));
+        };
+        modelTest.appendChild(viewerBtn);
+        
+        // Test 4: Camera test
+        function testCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Camera API not supported');
+                return;
+            }
+            
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    const video = document.getElementById('testVideo');
+                    video.style.display = 'block';
+                    video.srcObject = stream;
+                    alert('✅ Camera works!');
+                })
+                .catch(error => {
+                    alert('❌ Camera error: ' + error.name + '\n' + error.message);
+                });
+        }
+        
+        // Log environment info
+        console.log('=== DEBUG INFO ===');
+        console.log('URL:', window.location.href);
+        console.log('User Agent:', navigator.userAgent);
+        console.log('Platform:', navigator.platform);
+        console.log('WebGL:', !!gl);
+        console.log('Media Devices:', !!navigator.mediaDevices);
+        console.log('==================');
+    </script>
+</body>
+</html>

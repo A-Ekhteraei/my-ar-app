@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+    <a-scene embedded arjs="sourceType: webcam; detectionMode: mono;">
+        
+        <!-- TEST 1: Hiro marker (built-in) -->
+        <a-marker preset="hiro">
+            <a-box position="0 0.5 0" color="red"></a-box>
+        </a-marker>
+        
+        <!-- TEST 2: Your marker with box -->
+        <a-marker type="pattern" url="markers/my-marker.patt">
+            <a-sphere position="0 0.5 0" color="blue"></a-sphere>
+        </a-marker>
+        
+        <!-- TEST 3: Your marker with model -->
+        <a-marker type="pattern" url="markers/my-marker.patt">
+            <a-entity 
+                gltf-model="models/my-model.glb"
+                scale="0.5 0.5 0.5"
+                position="0 0.5 0">
+            </a-entity>
+        </a-marker>
+        
+        <a-entity camera></a-entity>
+    </a-scene>
+    
+    <script>
+        // Log which markers are found
+        document.addEventListener('DOMContentLoaded', () => {
+            const markers = document.querySelectorAll('a-marker');
+            markers.forEach((marker, i) => {
+                marker.addEventListener('markerFound', () => {
+                    console.log(`Marker ${i} found`);
+                });
+                marker.addEventListener('markerLost', () => {
+                    console.log(`Marker ${i} lost`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
